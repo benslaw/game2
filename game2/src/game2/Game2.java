@@ -37,7 +37,8 @@ public class Game2 {
         
         public static final int window_w = 1000;
         public static final int window_h = 1000;
-        int numspaces = window_h/25;
+        int numspacesh = window_h/25;
+        int numspacesw = window_w/25;
         public Color background = new Color(255, 255, 255);
         Random rand = new Random();
         public WorldImage theWorld =
@@ -45,7 +46,7 @@ public class Game2 {
                 window_w, window_h, background);
     }
     
-    public static class jayMan implements constants {
+    public static class jayMan implements Game2.constants {
         
         //slideyJay only has one important field, being the height
         int jay_y;
@@ -107,23 +108,29 @@ public class Game2 {
         
     }
     
-    public class enemy implements constants {
+    public class enemy implements Game2.constants {
         
         int enemy_x;
         int enemy_y;
         int type;
         int health;
-        int num = randomInt(0,100);
+//        int num = randomInt(0,100);
         
         enemy() {}
         
+        public void intialize_enemy() {
+            this.enemy_x = (randomInt(1,numspacesw - 1))*25;
+            this.enemy_y = (randomInt(1,numspacesh - 1))*25;
+        }
+        
         public void enemyType() {
+            int num = randomInt(0,100);
             if(num % 3 == 0) {
-                type = 0;
+                this.type = 0;
             } else if(num % 3 == 1) {
-                type = 1;
+                this.type = 1;
             } else {
-                type = 2;
+                this.type = 2;
             }
         }
         
@@ -188,9 +195,29 @@ public class Game2 {
         
     }
     
-    public class Room extends World implements constants {
+    public class enemies implements Game2.constants {
         
-        jayMan jay;
+        ArrayList<Game2.enemy> all_enemies = new ArrayList<Game2.enemy>();
+        int counter;
+        
+        enemies() {}
+        
+        public ArrayList<Game2.enemy> create_enemies(int num_enemies) {
+            for(int i = 0; i < num_enemies; i++) {
+                Game2.enemy e = new Game2.enemy();
+                e.enemyType();
+                e.reset_health();
+                e.intialize_enemy();
+                all_enemies.add(e);
+            }
+            return all_enemies;
+        }
+        
+    }
+    
+    public class Room extends World implements Game2.constants {
+        
+        Game2.jayMan jay;
         
         public void onTick() {
             //move mobs
