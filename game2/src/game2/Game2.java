@@ -86,6 +86,14 @@ public class Game2 {
                 if(jay_y <= window_h - 25) {
                     jay_y = jay_y + 25;
                 }
+            } else if (str.equals("left")) {
+                if(jay_x >= 25) {
+                    jay_x = jay_x - 25;
+                }
+            } else if (str.equals("right")) {
+                if(jay_x <= window_w - 25) {
+                    jay_x = jay_x + 25;
+                }
             }
         }
         
@@ -108,12 +116,13 @@ public class Game2 {
         
     }
     
-    public class enemy implements Game2.constants {
+    public static class enemy implements Game2.constants {
         
         int enemy_x;
         int enemy_y;
         int type;
         int health;
+        Color enemyColor;
 //        int num = randomInt(0,100);
         
         enemy() {}
@@ -127,10 +136,13 @@ public class Game2 {
             int num = randomInt(0,100);
             if(num % 3 == 0) {
                 this.type = 0;
+                this.enemyColor = new Color(255,0,0);
             } else if(num % 3 == 1) {
                 this.type = 1;
+                this.enemyColor = new Color(0,255,0);
             } else {
                 this.type = 2;
+                this.enemyColor = new Color(0,0,255);
             }
         }
         
@@ -161,7 +173,8 @@ public class Game2 {
         }
         
         public WorldImage enemyImage() {
-            return new RectangleImage(this.where_is_enemy(), 25, 25, new Red());
+            return new OverlayImages( new RectangleImage(this.where_is_enemy(), 25, 25, enemyColor),
+                    new TextImage(this.where_is_enemy(), "" + this.enemy_health(), new White()));
         }
         
         public int randomInt(int min, int max) {
@@ -195,16 +208,16 @@ public class Game2 {
         
     }
     
-    public class enemies implements Game2.constants {
+    public static class enemies implements Game2.constants {
         
         ArrayList<Game2.enemy> all_enemies = new ArrayList<Game2.enemy>();
         int counter;
         
         enemies() {}
         
-        public ArrayList<Game2.enemy> create_enemies(int num_enemies) {
+        public ArrayList<enemy> create_enemies(int num_enemies) {
             for(int i = 0; i < num_enemies; i++) {
-                Game2.enemy e = new Game2.enemy();
+                enemy e = new enemy();
                 e.enemyType();
                 e.reset_health();
                 e.intialize_enemy();
@@ -213,14 +226,42 @@ public class Game2 {
             return all_enemies;
         }
         
+        public WorldImage enemiesImage(ArrayList<enemy> enemies) {
+            WorldImage newWorld = theWorld;
+            for(int i = 0; i < enemies.size(); i++) {
+                RectangleImage temp = new RectangleImage
+                        (enemies.get(i).where_is_enemy(), 25, 25, 
+                        enemies.get(i).enemyColor);
+                newWorld = newWorld.overlayImages(temp);
+            }
+            return newWorld;
+        }
+        
     }
     
-    public class Room extends World implements Game2.constants {
+    public static class Room extends World implements constants {
         
-        Game2.jayMan jay;
+        jayMan jay;
+        enemy enemy;
+        enemies enemies;
+        
+        public Room(jayMan jay, enemy enemy, enemies enemies) {
+            this.jay = jay;
+            this.enemy = enemy;
+            this.enemies = enemies;
+        }        
         
         public void onTick() {
             //move mobs
+            for(int i = 0; i < enemies.all_enemies.size(); i++) {
+                enemies.all_enemies.get(i).move();
+            }
+        }
+        
+        public WorldImage makeImage() {
+            TextImage playerHealth = new TextImage(new Posn(window_w-50, 
+                    window_h - 25), "Health: " + jay.health, new Red());
+            return enemies.enemiesImage(enemies.all_enemies).overlayImages(jay.jayImage(), playerHealth);
         }
         
         public void onKeyEvent(String str) {
@@ -234,7 +275,20 @@ public class Game2 {
         
     }
     
+    public static class ActualWorld implements constants {
+        
+        ActualWorld() {}
+        
+        jayMan player = new jayMan();
+        enemy theEnemy = new enemy();
+        enemies theEnemies = new enemies();
+        
+        Room playField = new Room(player, theEnemy, theEnemies);
+        
+    }
+    
     public static void main(String[] args) {
-        // TODO code application logic here
+        ActualWorld x = new ActualWorld();
+        x.playField.bigBang(1000, 1000, 1);
     }
 }
