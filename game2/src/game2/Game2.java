@@ -35,8 +35,8 @@ public class Game2 {
     interface constants {
         //set of constants about the world that are used through all classes
         
-        public static final int window_w = 1000;
-        public static final int window_h = 1000;
+        public static final int window_w = 500;
+        public static final int window_h = 500;
         int numspacesh = window_h/25;
         int numspacesw = window_w/25;
         public Color background = new Color(255, 255, 255);
@@ -49,8 +49,8 @@ public class Game2 {
     public static class jayMan implements Game2.constants {
         
         //slideyJay only has one important field, being the height
-        int jay_y;
-        int jay_x;
+        int jay_y = window_h/2 + (int) Math.floor(25/2);
+        int jay_x = window_w/2 + (int) Math.floor(25/2);
         int health;
         
         //constructor
@@ -105,6 +105,11 @@ public class Game2 {
             health = 3;
         }
         
+        public void reset_jay_posn() {
+            this.jay_x = window_h/2 + (int) Math.floor(25/2);
+            this.jay_y = window_w/2 + (int) Math.floor(25/2);
+        }
+        
         //jayImage() --> returns a new WorldImage of jay read from the a file
         //at the location specified by where_is_Jay(). if the file cannot be found,
         //switch to the commented line above it to produce a blue square in place
@@ -128,8 +133,8 @@ public class Game2 {
         enemy() {}
         
         public void intialize_enemy() {
-            this.enemy_x = (randomInt(1,numspacesw - 1))*25;
-            this.enemy_y = (randomInt(1,numspacesh - 1))*25;
+            this.enemy_x = (randomInt(1,numspacesw - 1))*25 + (int) Math.floor(25/2);
+            this.enemy_y = (randomInt(1,numspacesh - 1))*25 + (int) Math.floor(25/2);
         }
         
         public void enemyType() {
@@ -229,12 +234,14 @@ public class Game2 {
         public WorldImage enemiesImage(ArrayList<enemy> enemies) {
             WorldImage newWorld = theWorld;
             for(int i = 0; i < enemies.size(); i++) {
-                RectangleImage temp = new RectangleImage
-                        (enemies.get(i).where_is_enemy(), 25, 25, 
-                        enemies.get(i).enemyColor);
+                WorldImage temp = enemies.get(i).enemyImage();
                 newWorld = newWorld.overlayImages(temp);
             }
             return newWorld;
+        }
+        
+        public boolean isEmpty() {
+            return this.all_enemies.isEmpty();
         }
         
     }
@@ -244,12 +251,20 @@ public class Game2 {
         jayMan jay;
         enemy enemy;
         enemies enemies;
+        int counter;
+        int level = 1;
+        int score;
         
         public Room(jayMan jay, enemy enemy, enemies enemies) {
             this.jay = jay;
             this.enemy = enemy;
             this.enemies = enemies;
         }        
+        
+        public void make_enemies() {
+            counter = level;
+            enemies.create_enemies(counter);
+        }
         
         public void onTick() {
             //move mobs
@@ -273,6 +288,46 @@ public class Game2 {
             }
         }
         
+        public boolean collisionHuh() {
+            boolean temp = false;
+            for(int i = 0; i < enemies.all_enemies.size(); i ++) {
+                if(jay.where_is_Jay() == enemies.all_enemies.get(i).where_is_enemy()) {
+                    jay.health--;
+                    temp = true;
+                }
+            }
+            return temp;
+        }
+        
+        public boolean isJayManDead() {
+            if(jay.health == 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        public void resetNewLevel() {
+            level++;
+            jay.reset_jay_posn();
+            this.make_enemies();
+        }
+        
+        public WorldEnd worldEnds() {
+            if(enemies.isEmpty()) {
+                this.resetNewLevel();
+                return new WorldEnd(false, this.makeImage());
+            } else if(this.isJayManDead()) {
+                return new WorldEnd(true, new OverlayImages(this.makeImage(),
+                        new TextImage(new Posn(window_w/2, window_h/2),
+                        "You killed Jay!", new Red()).overlayImages(
+                        new TextImage(new Posn(window_w/2, window_h/2+25),
+                        "Score: " + score, new Red()))));
+            } else {
+                return new WorldEnd(false, this.makeImage());
+            }
+        }
+    
     }
     
     public static class ActualWorld implements constants {
@@ -289,6 +344,8 @@ public class Game2 {
     
     public static void main(String[] args) {
         ActualWorld x = new ActualWorld();
-        x.playField.bigBang(1000, 1000, 1);
+        x.player.reset_health();
+        x.playField.make_enemies();
+        x.playField.bigBang(500, 500, 0.2);
     }
 }
