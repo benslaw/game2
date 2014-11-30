@@ -119,6 +119,34 @@ public class Game2 {
             return new FromFileImage(this.where_is_Jay(), "jay_face_resized.jpg");
         }
         
+        public WorldImage fireJayzor(String str) {
+            WorldImage temp = theWorld;
+            if(str.equals("w")) {
+                //fire jayzor up
+                for(int i = 0; i < jay_y - 13; i++) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn(jay_x, i), 1, 1, new Black()));
+                }
+            } else if(str.equals("a")) {
+                //fire jayzor left
+                for(int i = 0; i < jay_x - 13; i++) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn(i, jay_y), 1, 1, new Black()));
+                }
+            } else if(str.equals("s")) {
+                //fire jayzor down
+                for(int i = jay_y + 13; i < window_h; i++) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn(jay_x, i), 1, 1, new Black()));
+                }
+            } else {
+                //fire jayzor right
+                for(int i = jay_x + 13; i < window_w; i++) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn(i, jay_y), 1, 1, new Black()));
+                }
+            }
+            return temp;
+        }
+        
+        
+        
     }
     
     public static class enemy implements Game2.constants {
@@ -276,7 +304,8 @@ public class Game2 {
         public WorldImage makeImage() {
             TextImage playerHealth = new TextImage(new Posn(window_w-50, 
                     window_h - 25), "Health: " + jay.health, new Red());
-            return enemies.enemiesImage(enemies.all_enemies).overlayImages(jay.jayImage(), playerHealth);
+            WorldImage temp = enemies.enemiesImage(enemies.all_enemies).overlayImages(jay.jayImage(), playerHealth);
+            return temp;
         }
         
         public void onKeyEvent(String str) {
@@ -285,13 +314,21 @@ public class Game2 {
                 jay.move(str);
             } else if (str.equals("i")) {
                 //open inventory
+                
+            } else if (str.equals("w") || str.equals("a") ||
+                    str.equals("s") || str.equals("d")) {
+                //fire lasers
+                jay.fireJayzor(str);
             }
         }
         
         public boolean collisionHuh() {
             boolean temp = false;
-            for(int i = 0; i < enemies.all_enemies.size(); i ++) {
+            for(int i = 0; i < enemies.all_enemies.size(); i++) {
                 if(jay.where_is_Jay() == enemies.all_enemies.get(i).where_is_enemy()) {
+                    System.out.println(jay.where_is_Jay().x + jay.where_is_Jay().y);
+                    System.out.println(enemies.all_enemies.get(i).where_is_enemy().x + 
+                            enemies.all_enemies.get(i).where_is_enemy().y);
                     jay.health--;
                     temp = true;
                 }
@@ -314,6 +351,7 @@ public class Game2 {
         }
         
         public WorldEnd worldEnds() {
+            System.out.println("asdf");
             if(enemies.isEmpty()) {
                 this.resetNewLevel();
                 return new WorldEnd(false, this.makeImage());
@@ -324,6 +362,9 @@ public class Game2 {
                         new TextImage(new Posn(window_w/2, window_h/2+25),
                         "Score: " + score, new Red()))));
             } else {
+                System.out.println("end1");
+                collisionHuh();
+                System.out.println("end2");
                 return new WorldEnd(false, this.makeImage());
             }
         }
@@ -343,6 +384,7 @@ public class Game2 {
     }
     
     public static void main(String[] args) {
+        System.out.println("asdf1");
         ActualWorld x = new ActualWorld();
         x.player.reset_health();
         x.playField.make_enemies();
