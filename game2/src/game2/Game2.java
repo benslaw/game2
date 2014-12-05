@@ -105,11 +105,6 @@ public class Game2 {
             health = 3;
         }
         
-        public void reset_jay_posn() {
-            this.jay_x = window_h/2 + (int) Math.floor(25/2);
-            this.jay_y = window_w/2 + (int) Math.floor(25/2);
-        }
-        
         //jayImage() --> returns a new WorldImage of jay read from the a file
         //at the location specified by where_is_Jay(). if the file cannot be found,
         //switch to the commented line above it to produce a blue square in place
@@ -220,9 +215,9 @@ public class Game2 {
         }
         
         public void reset_health() {
-            if(type == 0) {
+            if(type == 1) {
                 health = 3;
-            } else if(type == 1) {
+            } else if(type == 2) {
                 health = 6;
             } else {
                 health = 9;
@@ -307,17 +302,20 @@ public class Game2 {
         jayMan jay;
         enemy enemy;
         enemies enemies;
-        InventoryWorld inventory;
         int counter;
         int level = 1;
         int score;
-        boolean isInvOpen = false;
+        boolean superBurst = true;
+        boolean healthPack = true;
+        boolean healthPack2 = true;
+        WorldImage invent = new RectangleImage(new Posn(window_w/2, window_h/2),
+                window_w, window_h, new White());
+        int sent = 0;
         
-        public Room(jayMan jay, enemy enemy, enemies enemies, InventoryWorld inventory) {
+        public Room(jayMan jay, enemy enemy, enemies enemies) {
             this.jay = jay;
             this.enemy = enemy;
             this.enemies = enemies;
-            this.inventory = inventory;
         }        
         
         public void make_enemies() {
@@ -331,35 +329,73 @@ public class Game2 {
                 enemies.all_enemies.get(i).move();
             }
         }
-        
+
         public WorldImage makeImage() {
-            TextImage playerHealth = new TextImage(new Posn(window_w-50, 
-                    window_h - 25), "Health: " + jay.health, new Red());
-            TextImage scoreBox = new TextImage(new Posn(window_w-50, 25), "Score: " + score, new Red());
-            WorldImage temp = enemies.enemiesImage(enemies.all_enemies).overlayImages(jay.jayImage(), playerHealth);
-            WorldImage temp2 = temp.overlayImages(scoreBox);
-            return temp2;
+            if (sent == 0) {
+                TextImage playerHealth = new TextImage(new Posn(window_w - 50,
+                        window_h - 25), "Health: " + jay.health, new Red());
+                TextImage scoreBox = new TextImage(new Posn(window_w - 50, 25), "Score: " + score, new Red());
+                TextImage levelBox = new TextImage(new Posn(50, 25), "Level: " + level, new Red());
+                WorldImage temp = enemies.enemiesImage(enemies.all_enemies).overlayImages(jay.jayImage(), playerHealth);
+                WorldImage temp2 = temp.overlayImages(scoreBox, levelBox);
+                return temp2;
+            } else {
+                WorldImage temp = invent;
+                if (superBurst) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn((window_w / 2 - 100), window_h / 2),
+                            50, 50, new Blue()), new TextImage(new Posn((window_w / 2 - 100), window_h / 2),
+                            "f", new Black()));
+                }
+                if (healthPack) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn((window_w / 2), window_h / 2),
+                            50, 50, new Red()), new TextImage(new Posn((window_w / 2), window_h / 2),
+                            "g", new Black()));
+                }
+                if (healthPack2) {
+                    temp = temp.overlayImages(new RectangleImage(new Posn((window_w / 2 + 100), window_h / 2),
+                            50, 50, new Red()), new TextImage(new Posn((window_w / 2 + 100), window_h / 2),
+                            "h", new Black()));
+                }
+                temp = temp.overlayImages(new TextImage(new Posn(window_w / 2, window_h / 5), "Inventory", 50, new Black()));
+                return temp;
+            }
         }
-        
+
         public void onKeyEvent(String str) {
-            if(str.equals("up") || str.equals("down") ||
-                    str.equals("left") || str.equals("right")) {
+            if (str.equals("up") || str.equals("down")
+                    || str.equals("left") || str.equals("right")) {
                 jay.move(str);
             } else if (str.equals("i")) {
                 //open inventory
-                if(!isInvOpen) {
-                    this.stopTimer = true;
-                    inventory.i.bigBang(window_w, window_h);
-                } else if(isInvOpen) {
-                    inventory.i.worldEnds();
-                    this.stopTimer = false;
+                this.stopTimer = !this.stopTimer;
+                if (sent == 0) {
+                    sent = 1;
+                } else {
+                    sent = 0;
                 }
-            } else if (str.equals("w") || str.equals("a") ||
-                    str.equals("s") || str.equals("d")) {
+            } else if (str.equals("w") || str.equals("a")
+                    || str.equals("s") || str.equals("d")) {
                 //fire lasers
 //                jay.fireJayzor(str);
                 jay.jayzorImage(jay.buildJayzor(str));
                 jayzorLanded(str);
+            }
+            if (sent == 1) {
+                if (str.equals("f") && superBurst) {
+                    for (int i = 0; i < enemies.all_enemies.size(); i++) {
+                        enemies.all_enemies.get(i).health = 0;
+                    }
+                    cleanEnemies();
+                    superBurst = false;
+                }
+                if (str.equals("g") && healthPack) {
+                    jay.health = jay.health + 1;
+                    healthPack = false;
+                }
+                if (str.equals("h") && healthPack2) {
+                    jay.health = jay.health + 1;
+                    healthPack2 = false;
+                }
             }
         }
         
@@ -394,7 +430,6 @@ public class Game2 {
         
         public void resetNewLevel() {
             level++;
-            jay.reset_jay_posn();
             this.make_enemies();
         }
         
@@ -418,12 +453,20 @@ public class Game2 {
         }
         
         public void cleanEnemies() {
+            ArrayList<enemy> temp = new ArrayList<enemy>();
             for(int i = 0; i < enemies.all_enemies.size(); i++) {
-                if(enemies.all_enemies.get(i).enemy_health() == 0) {
+                if(enemies.all_enemies.get(i).enemy_health() > 0) {
+                    temp.add(enemies.all_enemies.get(i));
+                } else {
                     score = score + enemies.all_enemies.get(i).type * 100;
-                    enemies.all_enemies.remove(i);
                 }
+//                if(enemies.all_enemies.get(i).enemy_health() <= 0) {
+//                    enemy current = enemies.all_enemies.get(i);
+//                    score = score + current.type * 100;
+//                    enemies.all_enemies.remove(current);
+//                }
             }
+            enemies.all_enemies = temp;
         }
         
         public boolean jayzorLanded(String str) {
@@ -471,85 +514,11 @@ public class Game2 {
         jayMan player = new jayMan();
         enemy theEnemy = new enemy();
         enemies theEnemies = new enemies();
-        InventoryWorld inventory = new InventoryWorld(player, theEnemies);
         
-        Room playField = new Room(player, theEnemy, theEnemies, inventory);
-        
-    }
-    
-    public static class inventory extends World implements constants {
-        
-        jayMan jay;
-        enemies enemies;
-        boolean superBurst = true;
-        boolean healthPack = true;
-        boolean healthPack2 = true;
-        WorldImage invent = new RectangleImage(new Posn(window_w/2, window_h/2),
-                window_w, window_h, new White());
-        
-        public inventory(jayMan jay, enemies enemies) {
-            this.jay = jay;
-            this.enemies = enemies;
-        }
-        
-        public WorldImage makeImage() {
-            WorldImage temp = invent;
-            if(superBurst) {
-                temp = temp.overlayImages(new RectangleImage(new Posn((window_w/2 - 100), window_h/2),
-                        50, 50, new Blue()), new TextImage(new Posn((window_w/2 - 100), window_h/2),
-                        "f",new Black()));
-            }
-            if(healthPack) {
-                temp = temp.overlayImages(new RectangleImage(new Posn((window_w/2), window_h/2),
-                        50, 50, new Red()), new TextImage(new Posn((window_w/2), window_h/2),
-                        "g",new Black()));
-            }
-            if(healthPack2) {
-                temp = temp.overlayImages(new RectangleImage(new Posn((window_w/2 + 100), window_h/2),
-                        50, 50, new Red()), new TextImage(new Posn((window_w/2 + 100), window_h/2),
-                        "h",new Black()));
-            }
-            temp = temp.overlayImages(new TextImage(new Posn(window_w/2, window_h/5), "Inventory", 50, new Black()));
-            return temp;
-        }
-        
-        public void onKeyEvent(String str) {
-//            if(str.equals("i")) {
-//                this.stopWorld();
-//                this.worldEnds();
-//            }
-            if(str.equals("f") && superBurst) {
-                for(int i = 0; i < enemies.all_enemies.size(); i++) {
-                    enemies.all_enemies.get(i).health = 0;
-                }
-                superBurst = false;
-            }
-            if(str.equals("g") && healthPack) {
-                jay.health = jay.health + 1;
-                healthPack = false;
-            }
-            if(str.equals("h") && healthPack2) {
-                jay.health = jay.health + 1;
-                healthPack2 = false;
-            }
-        }
+        Room playField = new Room(player, theEnemy, theEnemies);
         
     }
-    
-    public static class InventoryWorld implements constants {
-        
-        jayMan jay;
-        enemies enemies;
-        
-        InventoryWorld(jayMan jay, enemies enemies) {
-            this.jay = jay;
-            this.enemies = enemies;
-        }
-        
-        inventory i = new inventory(jay, enemies);
-        
-    }
-    
+       
     public static void main(String[] args) {
 //        System.out.println("asdf1");
         ActualWorld x = new ActualWorld();
